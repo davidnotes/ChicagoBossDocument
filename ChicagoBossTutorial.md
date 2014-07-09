@@ -174,3 +174,18 @@ Controller action 支持多返回值，最简单的就是 {output, Value}，原�
     - {ok, Values} - 传递参数值到相关的 template中
 
 额，这个很有趣把。我们可以对世界说 hello，但是世界对我们说 hello 时，我们怎么办呢？绝大多数 web 应用需要存储和处理数据。接触完 View 和 Control 后，我们开始聊聊 Model。
+
+#### 2. 数据库
+
+Chicago Boss 包含了一套特殊的查询语法，一个完整的ORM以及一系列的数据库驱动。我们通过一个简单的模型起步，看看到底能干些什么。在 src/model 下面创建一个 greeting.erl 的文件夹，然后输入以下代码，同样粘贴也行：
+    
+    -module(greeting, [Id, GreetingText]).
+    -compile(export_all).
+
+这个是 "greeting" 对象的模型。这是一个参数化的模块，然后里面有两个参数（Id 和 GreetingText）。所有的模型的第一个参数都是 Id, 接下来的参数你可以随意定义。这看起来像是一个传统的 Erlang module， 但是它包含了很多神奇的功能。是时候探寻一下 Chicago Boss ORM 隐藏的功能了，这货叫做 BossRecord。
+刷新一下浏览器，（这样这个 model 文件会被编译然后加载），然后尝试一下下面的 shell 命令：
+
+    > Greeting = greeting:new(id, "Hello, world!").
+    {greeting,id,"Hello, world!"}
+
+这个新功能返回一个新的 greeting 实例。 我把 id 作为第一个参数传入，是为了告诉 BossDB 必要的时候就生成一个新的 ID 。如果我想要一个指定的 ID， 比如我想包含我的球服的号码，这个可以自定义。如你所见，这个 greeting 实例就是一个包含 module 名字以及
