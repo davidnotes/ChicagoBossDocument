@@ -182,10 +182,43 @@ Chicago Boss 包含了一套特殊的查询语法，一个完整的ORM以及一�
     -module(greeting, [Id, GreetingText]).
     -compile(export_all).
 
-这个是 "greeting" 对象的模型。这是一个参数化的模块，然后里面有两个参数（Id 和 GreetingText）。所有的模型的第一个参数都是 Id, 接下来的参数你可以随意定义。这看起来像是一个传统的 Erlang module， 但是它包含了很多神奇的功能。是时候探寻一下 Chicago Boss ORM 隐藏的功能了，这货叫做 BossRecord。
+这个是 "greeting" 对象的模型。这是一个参数化的模块，然后里面有两个参数（Id 和 GreetingText）。所有的模型的第一个参数都是 Id, 接下来的参数你可以随意定义。这看起来像是一个传统的 Erlang 模块， 但是它包含了很多神奇的功能。是时候探寻一下 Chicago Boss ORM 隐藏的功能了，这货叫做 BossRecord。
 刷新一下浏览器，（这样这个 model 文件会被编译然后加载），然后尝试一下下面的 shell 命令：
 
     > Greeting = greeting:new(id, "Hello, world!").
     {greeting,id,"Hello, world!"}
 
-这个新功能返回一个新的 greeting 实例。 我把 id 作为第一个参数传入，是为了告诉 BossDB 必要的时候就生成一个新的 ID 。如果我想要一个指定的 ID， 比如我想包含我的球服的号码，这个可以自定义。如你所见，这个 greeting 实例就是一个包含 module 名字以及
+这个新功能返回一个新的 greeting 实例。 我把 id 作为第一个参数传入，是为了告诉 BossDB 必要的时候就生成一个新的 ID 。如果我想要一个指定的 ID， 比如我想包含我的球服的号码，这个可以自定义。
+如你所见，这个 greeting 实例就是一个包含 模块 名字以及所有传入参数的 tuple。 当你调用一个参数化 模块 的function 的时候（额，别用 new()）,运行环境在执行 function 之前，会绑定 模块 的参数列表的。尽管这看起来有点像面向对象百年城，调用 greeting 实例就是使用其所罕有的参数值。当然如同 erlang 其他参数一样，变量单次赋值后无法变化，所以我们没必要考虑，锁，副作用或者其他面向对象的坏毛病。
+
+我们还是看看 model 吧。试一下下面这段代码：
+
+    > Greeting:greeting_text().
+    "Hello, world!"
+
+“该死，等会”，你可能会想，“我压根不记得我调用过 greeting_text/0 ， 事实上我记得我没有调用过任何 function，我老年痴呆了么？ 我在哪儿？”
+额，别担心，你没问题（你坐在你电脑前）。在系统载入 model 模块 之前，Chicago Boss 编译器已经后台将一些方法附加到 模块s 上去了。这里有一些其他 function 你可以尝试一下。你现在可以去看看这些防范都是干什么的。
+
+> Greeting:attributes().
+[{id,id},{greeting_text,"Hello, world!"}]
+> Greeting:attribute_names().
+[id,greeting_text]
+
+这个也相当有用，但是可能并不会如你所愿的工作：
+
+> Greeting:set(greeting_text, "Good-bye, world!").
+{greeting,id,"Good-bye, world!"}
+
+Erlang 变量不可变， 所以调用 set/2 会返回一个新的 record 。之前的比纳凉并不会发生变化，试试这个，你会懂我的意思的：
+
+> Greeting.
+{greeting,id,"Hello, world!"}
+
+看到了么？Greeting 变量依旧或者，充满希望。这些编译器生成的方法极大的方便了 Chicago Boss 的日常开发。没有它们，你会需要调用 proplists:get_value/2, proplists:delete/2, 以及一些列的冗余的方法。这些方法中最重要的是：
+
+> Greeting:save().
+{ok,{greeting,"greeting-1","Hello, world!"}}
+
+这个很简单，没有保存的话，数据没法持久化，除了报错一切操作都会失去意义。试试吧，你将会实现第一个数据持久化，id 属性会被注入一个实时的认证字符串。Chicago Boss 生成的字符串 ID 会是 "model-number" 的形式（比如 "greeting-1"）.Chicago Boss 通过这一命名策略来保证 ID 的唯一性。（这也大大的降低了 API 设计的难度。）
+
+你可能也会思考：怎么才能记住所有的由编译器添加到 BossRecord 的 function 。你能保密咩？有个秘密可以跟你说，但你连你的小伙伴也不能说。（尤其他（她）是一个 Rails 程序员）。打开一个浏览器，访问 http://localhost:8001/doc/greeting. 看一眼就关掉吧，你已经发现 Chicago Boss 的全自动文档了，上面每个模型所有的方法。在 Chicago Boss 社区，我们称这个特性叫 "/doc"，你可以自己研究一下。
